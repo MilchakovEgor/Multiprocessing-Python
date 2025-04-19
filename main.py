@@ -1,11 +1,11 @@
 import multiprocessing
 import random
+import psutil 
 
 LOG_FILE = "app.log" 
 RESULT_FILE = "results.txt"  
 LOG_LEVEL_INFO = "INFO"
 LOG_LEVEL_ERROR = "ERROR"
-
 
 def log_message(level, message):
     try:
@@ -48,7 +48,6 @@ def save_results(results_queue, output_file):
     except Exception as e:
         log_message(LOG_LEVEL_ERROR, f"Ошибка при сохранении результатов: {e}")
 
-
 def main():
     try:
         rows_a = int(input("Введите количество строк для матрицы A: "))
@@ -74,9 +73,14 @@ def main():
     for row in matrix_b:
         log_message(LOG_LEVEL_INFO, str(row))
 
-    cpu_count = multiprocessing.cpu_count()  
-    max_processes = min(int(cpu_count * 0.75), rows_a)  
-    log_message(LOG_LEVEL_INFO, f"У вашего процессора {cpu_count} потоков. Максимальное допустимое количество процессов: {max_processes}.")
+    cpu_count = multiprocessing.cpu_count()
+    cpu_usage = psutil.cpu_percent(interval=1)  
+    available_cpu_fraction = 1 - (cpu_usage / 100)  
+
+    max_processes = min(int(cpu_count * available_cpu_fraction), rows_a)
+    log_message(LOG_LEVEL_INFO, f"У вашего процессора {cpu_count} потоков. "
+                                 f"Текущая загруженность: {cpu_usage}%. "
+                                 f"Максимальное допустимое количество процессов: {max_processes}.")
 
     try:
         num_processes = int(input(f"Введите количество процессов (не более {max_processes}): "))
